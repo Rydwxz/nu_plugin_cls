@@ -880,7 +880,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nu_plugin_seel"
+name = "nu_plugin_cls"
 version = "0.1.0"
 dependencies = [
  "colored",

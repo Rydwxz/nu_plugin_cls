@@ -1,4 +1,4 @@
 #!/usr/bin/nu
-plugin rm seel
-plugin add ./target/debug/nu_plugin_seel
-plugin use seel
+plugin rm cls
+plugin add ./target/debug/nu_plugin_cls
+plugin use cls

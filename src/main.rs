@@ -27,7 +27,7 @@ struct Seel;
 impl PluginCommand for Seel {
     type Plugin = SeelPlugin;
     fn name(&self) -> &str {
-        "seel"
+        "cls"
     }
     fn description(&self) -> &str {
         "visually select directory items"
