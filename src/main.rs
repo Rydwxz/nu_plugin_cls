@@ -11,23 +11,23 @@ mod fs;
 mod parse;
 mod print;
 
-struct SeelPlugin;
+struct SPlugin;
 
-impl Plugin for SeelPlugin {
+impl Plugin for SPlugin {
     fn version(&self) -> String {
         env!("CARGO_PKG_VERSION").into()
     }
     fn commands(&self) -> Vec<Box<dyn PluginCommand<Plugin = Self>>> {
-        vec![Box::new(Seel)]
+        vec![Box::new(S)]
     }
 }
 
-struct Seel;
+struct S;
 
-impl PluginCommand for Seel {
-    type Plugin = SeelPlugin;
+impl PluginCommand for S {
+    type Plugin = SPlugin;
     fn name(&self) -> &str {
-        "cls"
+        "s"
     }
     fn description(&self) -> &str {
         "visually select directory items"
@@ -35,7 +35,7 @@ impl PluginCommand for Seel {
     fn extra_description(&self) -> &str {
         "enter the index of an item to pipe it's path to stdout:
 
-cls 20 | mv $in ./tmp"
+s 20 | mv $in ./tmp"
     }
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))
@@ -96,5 +96,5 @@ cls 20 | mv $in ./tmp"
 }
 
 fn main() {
-    serve_plugin(&SeelPlugin, MsgPackSerializer);
+    serve_plugin(&SPlugin, MsgPackSerializer);
 }
