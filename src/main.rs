@@ -35,7 +35,7 @@ impl PluginCommand for Seel {
     fn extra_description(&self) -> &str {
         "enter the index of an item to pipe it's path to stdout:
 
-seel 20 | mv $in ./tmp"
+cls 20 | mv $in ./tmp"
     }
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))

@@ -12,20 +12,20 @@ pub struct SeelArgs {
 
 impl SeelArgs {
     pub fn parse_call(call: &EvaluatedCall) -> Result<Self, LabeledError> {
-        let first = call.positional[0];
-        let sel = if let Ok(i) = first.as_int() { Some(vec![i]) } else if let Ok(r) = first.as_range() {
-            r.into_range_iter(signals)
-        }
-        let print = if let None = sel { true } else { false };
+        // let first = call.positional[0];
+        // let sel = if let Ok(i) = first.as_int() { Some(vec![i]) } else if let Ok(r) = first.as_range() {
+        //     r.into_range_iter(signals)
+        // }
+        // let print = if let None = sel { true } else { false };
         Ok(Self {
-            sel,
+            sel: None,
             cmd: None,
             pth: None,
             recursive: match call.get_flag::<i32>("recursive")? {
                 Some(i) => i + 1,
                 None => 1,
             },
-            print,
+            print: false,
         })
     }
 }
