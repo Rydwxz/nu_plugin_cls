@@ -30,7 +30,7 @@ impl PluginCommand for S {
         "s"
     }
     fn description(&self) -> &str {
-        "visually select directory items"
+        "see and select items by index"
     }
     fn extra_description(&self) -> &str {
         "enter the index of an item to pipe it's path to stdout:
