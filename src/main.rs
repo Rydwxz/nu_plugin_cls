@@ -45,18 +45,15 @@ s 20 | mv $in ./tmp"
             // ])
             .optional(
                 "index",
-                SyntaxShape::Int,
-                "index of one item you want to select",
-            )
-            .optional(
-                "range",
-                SyntaxShape::Range,
-                "range of indexes you want to select",
-            )
-            .optional(
-                "list",
-                SyntaxShape::List(Box::new(SyntaxShape::Any)),
-                "list of ranges and/or indexes you want to select",
+                SyntaxShape::OneOf(vec![
+                    SyntaxShape::Int,
+                    SyntaxShape::Range,
+                    SyntaxShape::List(Box::new(SyntaxShape::OneOf(vec![
+                        SyntaxShape::Int,
+                        SyntaxShape::Range,
+                    ]))),
+                ]),
+                "index of item(s) you want to select",
             )
             .named(
                 "recursive",
@@ -74,7 +71,7 @@ s 20 | mv $in ./tmp"
     ) -> Result<nu_protocol::PipelineData, LabeledError> {
         let span = call.head;
         let metadata = input.metadata();
-        let args = match parse::SeelArgs::parse_call(call) {
+        let args = match parse::SArgs::parse_call(call, engine) {
             Ok(args) => args,
             Err(e) => return Err(e),
         };
@@ -87,9 +84,12 @@ s 20 | mv $in ./tmp"
                 }
             },
         };
-        let enum_list = fs::walk(cwd, args);
+        let enum_list = fs::walk(cwd, &args);
 
-        print::enum_list(enum_list);
+        // print::enum_list(&enum_list);
+        if let Some(v) = args.sel {
+            print::selected_indexes(v);
+        }
 
         Ok(PipelineData::Empty)
     }

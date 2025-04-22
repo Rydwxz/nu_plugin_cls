@@ -1,8 +1,8 @@
-use crate::parse::SeelArgs;
+use crate::parse::SArgs;
 use std::path::PathBuf;
 use walkdir::{DirEntry, WalkDir};
 
-pub fn walk(cwd: PathBuf, args: SeelArgs) -> DirList {
+pub fn walk(cwd: PathBuf, args: &SArgs) -> DirList {
     let wd = WalkDir::new(cwd);
     let wd = wd.max_depth(args.recursive as usize);
     let wd = wd.sort_by_file_name();
