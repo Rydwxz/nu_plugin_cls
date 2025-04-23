@@ -36,14 +36,14 @@ impl SArgs {
         };
         let print = if let None = sel { true } else { false };
         Ok(Self {
-            sel: None,
+            sel,
             cmd: None,
             pth: None,
             recursive: match call.get_flag::<i64>("recursive")? {
                 Some(i) => i + 1,
                 None => 1,
             },
-            print: false,
+            print,
         })
     }
 }

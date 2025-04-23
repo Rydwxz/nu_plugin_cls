@@ -39,10 +39,6 @@ s 20 | mv $in ./tmp"
     }
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))
-            // .input_output_types(vec![
-            //     (Type::Nothing, Type::Nothing),
-            //     (Type::Int, Type::Nothing),
-            // ])
             .optional(
                 "index",
                 SyntaxShape::OneOf(vec![
@@ -86,9 +82,13 @@ s 20 | mv $in ./tmp"
         };
         let enum_list = fs::walk(cwd, &args);
 
-        // print::enum_list(&enum_list);
+        if args.print {
+            print::enum_list(&enum_list);
+        }
         if let Some(v) = args.sel {
-            print::selected_indexes(v);
+            for s in v {
+                println!("{}", enum_list.nth(s).display())
+            }
         }
 
         Ok(PipelineData::Empty)
