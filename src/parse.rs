@@ -1,5 +1,5 @@
 use nu_plugin::{EngineInterface, EvaluatedCall};
-use nu_protocol::{LabeledError, Range, Value, engine::EngineState};
+use nu_protocol::{LabeledError, Range, Value};
 use std::path::PathBuf;
 
 pub struct SArgs {
@@ -8,43 +8,62 @@ pub struct SArgs {
     pub pth: Option<PathBuf>,
     pub recursive: i64,
     pub print: bool,
+    pub max_height: usize,
 }
 
 impl SArgs {
     pub fn parse_call(call: &EvaluatedCall, eng: &EngineInterface) -> Result<Self, LabeledError> {
-        let sel = if let Some(first) = call.nth(0) {
-            if let Ok(i) = first.as_int() {
-                Some(vec![i])
-            } else if let Ok(r) = first.as_range() {
-                Some(flatten_range(r, call, eng))
-            } else if let Ok(l) = first.as_list() {
-                Some(l.into_iter().fold(vec![], |mut acc, v| {
-                    match v {
-                        Value::Int { val, .. } => acc.push(*val),
-                        Value::Range { val, .. } => flatten_range(**val, call, eng)
-                            .iter()
-                            .for_each(|i| acc.push(*i)),
-                        _ => {}
-                    };
-                    acc
-                }))
-            } else {
-                None
+        parse_config(eng).overlay(parse_args(eng))
+    }
+    fn overlay(self, args: Self) -> Self {
+        Self {
+            sel: match args.sel {
+                Some(s) => args.sel,
+                None => self.sel,
+            },
+            cmd: args.cmd,
+            pth: args.pth,
+            recursive: match args.recursive {
+
             }
+        }
+    }
+}
+fn parse_config(eng: &EngineInterface) -> SArgs {}
+fn parse_args(eng: &EngineInterface) -> SArgs {
+    let sel = if let Some(first) = call.nth(0) {
+        if let Ok(i) = first.as_int() {
+            Some(vec![i])
+        } else if let Ok(r) = first.as_range() {
+            Some(flatten_range(r, call, eng))
+        } else if let Ok(l) = first.as_list() {
+            Some(l.into_iter().fold(vec![], |mut acc, v| {
+                match v {
+                    Value::Int { val, .. } => acc.push(*val),
+                    Value::Range { val, .. } => flatten_range(**val, call, eng)
+                        .iter()
+                        .for_each(|i| acc.push(*i)),
+                    _ => {}
+                };
+                acc
+            }))
         } else {
             None
-        };
-        let print = if let None = sel { true } else { false };
-        Ok(Self {
-            sel,
-            cmd: None,
-            pth: None,
-            recursive: match call.get_flag::<i64>("recursive")? {
-                Some(i) => i + 1,
-                None => 1,
-            },
-            print,
-        })
+        }
+    } else {
+        None
+    };
+    let print = if let None = sel { true } else { false };
+    SArgs {
+        sel,
+        cmd: None,
+        pth: None,
+        recursive: match call.get_flag::<i64>("recursive")? {
+            Some(i) => i + 1,
+            None => 1,
+        },
+        max_height: 42,
+        print,
     }
 }
 

@@ -1,32 +1,42 @@
 use crate::parse::SArgs;
-use std::path::PathBuf;
-use walkdir::{DirEntry, WalkDir};
+use std::fs::DirEntry;
+use std::path::{Path, PathBuf};
 
-pub fn walk(cwd: PathBuf, args: &SArgs) -> DirList {
-    let wd = WalkDir::new(cwd);
-    let wd = wd.max_depth(args.recursive as usize);
-    let wd = wd.sort_by_file_name();
-    let list = wd
-        .into_iter()
-        .skip(1) // skip cwd
-        .filter_map(|e| e.ok())
-        .fold(Vec::new(), |mut acc, entry| {
-            acc.push(entry);
-            acc
-        });
-
-    DirList { inner: list }
+enum Dent {
+    Dir(DirEntry, Box<Vec<Dent>>),
+    Link(Box<Dent>),
+    File(DirEntry),
 }
-
 pub struct DirList {
-    inner: Vec<DirEntry>,
+    inner: Vec<Dent>,
 }
 impl DirList {
+    pub fn new(cwd: PathBuf, args: &SArgs) -> Self {
+        let (dirs, files) = match std::fs::read_dir(cwd) {
+            Err(_) => (vec![], vec![]),
+            Ok(rdir) => rdir
+                .into_iter()
+                .fold((vec![], vec![]), |acc, entry| entry.map(|e| {
+                    if e.
+                })),
+        };
+        // .into_iter() .skip(1) // skip cwd
+        // .filter_map(|e| e.ok())
+        // .fold(Vec::new(), |mut acc, entry| {
+        //     acc.push(entry);
+        //     acc
+        // });
+
+        DirList { inner: list }
+    }
     pub fn iter(&self) -> DirListIter {
         DirListIter {
             list: self,
             index: 0,
         }
+    }
+    pub fn nth(&self, i: i64) -> Path {
+        self.inner[i as usize].path()
     }
 }
 

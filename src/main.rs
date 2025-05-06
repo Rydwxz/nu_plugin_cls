@@ -1,5 +1,3 @@
-use walkdir::DirEntry;
-
 use std::{fmt::format, path::PathBuf, str::EncodeUtf16};
 
 use nu_plugin::{
@@ -57,6 +55,12 @@ s 20 | mv $in ./tmp"
                 "recurse into directories this far",
                 Some('r'),
             )
+            .named(
+                "dir-first",
+                SyntaxShape::Int,
+                "show directories before files",
+                Some('d'),
+            )
     }
     fn run(
         &self,
@@ -71,6 +75,8 @@ s 20 | mv $in ./tmp"
             Ok(args) => args,
             Err(e) => return Err(e),
         };
+        // let env = parse::get_env(engine)
+        // let cfg = parse::merge(args, env);
         let cwd = match engine.get_current_dir() {
             Ok(s) => PathBuf::from(s),
             Err(_) => match dirs::home_dir() {
@@ -80,10 +86,10 @@ s 20 | mv $in ./tmp"
                 }
             },
         };
-        let enum_list = fs::walk(cwd, &args);
+        let enum_list = fs::DirList::new(cwd, &args);
 
         if args.print {
-            print::enum_list(&enum_list);
+            print::enum_list(&enum_list, &args);
         }
         if let Some(v) = args.sel {
             for s in v {
