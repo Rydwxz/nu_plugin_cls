@@ -1,33 +1,14 @@
 use crate::parse::SArgs;
-use std::fs::DirEntry;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-enum Dent {
-    Dir(DirEntry, Box<Vec<Dent>>),
-    Link(Box<Dent>),
-    File(DirEntry),
-}
 pub struct DirList {
     inner: Vec<Dent>,
 }
 impl DirList {
-    pub fn new(cwd: PathBuf, args: &SArgs) -> Self {
-        let (dirs, files) = match std::fs::read_dir(cwd) {
-            Err(_) => (vec![], vec![]),
-            Ok(rdir) => rdir
-                .into_iter()
-                .fold((vec![], vec![]), |acc, entry| entry.map(|e| {
-                    if e.
-                })),
-        };
-        // .into_iter() .skip(1) // skip cwd
-        // .filter_map(|e| e.ok())
-        // .fold(Vec::new(), |mut acc, entry| {
-        //     acc.push(entry);
-        //     acc
-        // });
-
-        DirList { inner: list }
+    pub fn new(cwd: PathBuf, args: &SArgs) -> Result<Self, std::io::Error> {
+        Ok(DirList {
+            inner: DirList::get_dirlist(cwd, args, args.recursive)?,
+        })
     }
     pub fn iter(&self) -> DirListIter {
         DirListIter {
@@ -35,8 +16,79 @@ impl DirList {
             index: 0,
         }
     }
-    pub fn nth(&self, i: i64) -> Path {
-        self.inner[i as usize].path()
+    pub fn nth(&self, i: i64) -> &str {
+        self.inner[i as usize].pthstr()
+    }
+    fn get_dirlist(cwd: PathBuf, args: &SArgs, depth: i64) -> Result<Vec<Dent>, std::io::Error> {
+        let list: Vec<Dent> = std::fs::read_dir(cwd)?
+            .into_iter()
+            .filter_map(|entry| {
+                if let Ok(entry) = entry {
+                    if let Ok(md) = entry.metadata() {
+                        let ft = md.file_type();
+                        if ft.is_dir() {
+                            Some(Dent::Dir {
+                                pthstr: entry.path().display().to_string(),
+                                contents: if depth > 0 {
+                                    if let Ok(dl) =
+                                        DirList::get_dirlist(entry.path(), args, depth - 1)
+                                    {
+                                        Some(Box::new(dl))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                },
+                            })
+                        } else if ft.is_file() {
+                            Some(Dent::File {
+                                pthstr: entry.path().display().to_string(),
+                            })
+                        } else if ft.is_symlink() {
+                            Some(Dent::Link {
+                                pthstr: entry.path().display().to_string(),
+                            })
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(list)
+    }
+}
+
+enum Dent {
+    Dir {
+        pthstr: String,
+        contents: Option<Box<Vec<Dent>>>,
+        // modified: String,
+        // acessed: String,
+    },
+    Link {
+        pthstr: String,
+    },
+    File {
+        pthstr: String,
+        // ft: String,
+        // modified: String,
+        // acessed: String,
+    },
+}
+impl Dent {
+    pub fn pthstr(&self) -> &str {
+        match self {
+            Dent::Dir { pthstr, .. } => &pthstr,
+            Dent::File { pthstr } => &pthstr,
+            Dent::Link { pthstr } => &pthstr,
+        }
     }
 }
 
@@ -45,7 +97,7 @@ pub struct DirListIter<'a> {
     index: usize,
 }
 impl<'a> Iterator for DirListIter<'a> {
-    type Item = &'a DirEntry;
+    type Item = &'a Dent;
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.list.inner.len() {
             let res = &self.list.inner[self.index];

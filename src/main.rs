@@ -88,13 +88,13 @@ s 20 | mv $in ./tmp"
         };
         let enum_list = fs::DirList::new(cwd, &args);
 
-        if args.print {
-            print::enum_list(&enum_list, &args);
-        }
         if let Some(v) = args.sel {
             for s in v {
                 println!("{}", enum_list.nth(s).display())
             }
+        }
+        if args.print {
+            print::enum_list(&enum_list, &args);
         }
 
         Ok(PipelineData::Empty)
