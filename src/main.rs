@@ -1,9 +1,11 @@
-use std::{fmt::format, path::PathBuf, str::EncodeUtf16};
+use std::{alloc::Layout, fmt::format, path::PathBuf, str::EncodeUtf16};
 
 use nu_plugin::{
     EngineInterface, EvaluatedCall, MsgPackSerializer, Plugin, PluginCommand, serve_plugin,
 };
-use nu_protocol::{LabeledError, LsConfig, PipelineData, Signature, SyntaxShape, Type, Value};
+use nu_protocol::{
+    ErrorLabel, LabeledError, LsConfig, PipelineData, Signature, SyntaxShape, Type, Value,
+};
 
 mod fs;
 mod parse;
@@ -71,10 +73,7 @@ s 20 | mv $in ./tmp"
     ) -> Result<nu_protocol::PipelineData, LabeledError> {
         let span = call.head;
         let metadata = input.metadata();
-        let args = match parse::SArgs::parse_call(call, engine) {
-            Ok(args) => args,
-            Err(e) => return Err(e),
-        };
+        let args = parse::parse_args(engine, call);
         // let env = parse::get_env(engine)
         // let cfg = parse::merge(args, env);
         let cwd = match engine.get_current_dir() {
@@ -82,15 +81,20 @@ s 20 | mv $in ./tmp"
             Err(_) => match dirs::home_dir() {
                 Some(pb) => pb,
                 None => {
-                    return Err(LabeledError::new("home dir not found"));
+                    return Err(LabeledError::new("!! home dir not found"));
                 }
             },
         };
-        let enum_list = fs::DirList::new(cwd, &args);
+        let enum_list = match fs::DirList::new(cwd, &args) {
+            Ok(el) => el,
+            Err(_) => {
+                return Err(LabeledError::new("!! cwd not found"));
+            }
+        };
 
-        if let Some(v) = args.sel {
+        if let Some(ref v) = args.sel {
             for s in v {
-                println!("{}", enum_list.nth(s).display())
+                println!("{}", enum_list.nth(*s))
             }
         }
         if args.print {

@@ -3,27 +3,44 @@ use nu_protocol::{LabeledError, Range, Value};
 use std::path::PathBuf;
 
 pub struct SArgs {
+    pub recursive: Option<i64>,
+    pub max_height: Option<i64>,
+    // these should never be set by configuration: only at runtime
     pub sel: Option<Vec<i64>>,
     pub cmd: Option<SCmd>,
     pub pth: Option<PathBuf>,
     pub print: bool,
     pub flags: bool,
-    pub recursive: i64,
-    pub max_height: i64,
 }
 
-fn parse_config(eng: &EngineInterface) -> Option<SArgs> {
+pub fn parse_config(eng: &EngineInterface) -> Option<SArgs> {
     if let Ok(Some(cfg)) = eng.get_plugin_config() {
-        Some(
-            SArgs::default()
-                .recursive(cfg.get_data_by_key("recursive"))
-                .max_height(cfg.get_data_by_key("max_height")),
-        )
+        Some(SArgs {
+            recursive: if let Some(val) = cfg.get_data_by_key("recursive") {
+                if let Ok(i) = val.as_int() {
+                    Some(i)
+                } else {
+                    None
+                }
+            } else {
+                None
+            },
+            max_height: if let Some(val) = cfg.get_data_by_key("max_height") {
+                if let Ok(i) = val.as_int() {
+                    Some(i)
+                } else {
+                    None
+                }
+            } else {
+                None
+            },
+            ..SArgs::default()
+        })
     } else {
         None
     }
 }
-fn parse_args(eng: &EngineInterface, call: &EvaluatedCall) -> SArgs {
+pub fn parse_args(eng: &EngineInterface, call: &EvaluatedCall) -> SArgs {
     let sel = if let Some(first) = call.nth(0) {
         if let Ok(i) = first.as_int() {
             Some(vec![i])
@@ -47,13 +64,17 @@ fn parse_args(eng: &EngineInterface, call: &EvaluatedCall) -> SArgs {
         None
     };
     let mut flags = false;
-    let recursive = match call.get_flag::<i64>("recursive")? {
-        Some(i) => {
+    let recursive = if let Ok(o) = call.get_flag::<i64>("recursive") {
+        if let Some(i) = o {
             flags = true;
-            i
+            Some(i)
+        } else {
+            None
         }
-        None => 0,
+    } else {
+        None
     };
+    let max_height = None;
     let print = if let None = sel { true } else { false };
     SArgs {
         sel,
@@ -62,14 +83,14 @@ fn parse_args(eng: &EngineInterface, call: &EvaluatedCall) -> SArgs {
         print,
         flags,
         recursive,
-        max_height: 42,
+        max_height,
     }
 }
 
 fn flatten_range(r: Range, call: &EvaluatedCall, eng: &EngineInterface) -> Vec<i64> {
     r.into_range_iter(call.head, eng.signals().clone())
-        .fold(vec![], |mut acc, i| {
-            if let Ok(i) = i.as_int() {
+        .fold(vec![], |mut acc, v| {
+            if let Ok(i) = v.as_int() {
                 acc.push(i)
             };
             acc
@@ -79,13 +100,13 @@ fn flatten_range(r: Range, call: &EvaluatedCall, eng: &EngineInterface) -> Vec<i
 impl SArgs {
     fn default() -> Self {
         Self {
+            recursive: Some(0),
+            max_height: Some(58),
             sel: None,
             cmd: None,
             pth: None,
             print: false,
             flags: false,
-            recursive: 0,
-            max_height: 58,
         }
     }
     fn merge(self, other: Self) -> Self {
@@ -100,36 +121,50 @@ impl SArgs {
             } else {
                 self.cmd
             },
+            pth: if let Some(new) = other.pth {
+                Some(new)
+            } else {
+                self.pth
+            },
+            print: other.print, // even if cfg sets these,
+            flags: other.flags, // args will overwrite afterwards
+            recursive: if let Some(new) = other.recursive {
+                Some(new)
+            } else {
+                self.recursive
+            },
+            max_height: if let Some(new) = other.max_height {
+                Some(new)
+            } else {
+                self.max_height
+            },
         }
     }
-    fn mrg<T>(old: T, new: T) -> T {
-        if let Some(new) = new { new } else { old }
-    }
-    fn merge_option<T>(old: Option<T>, new: Option<T>) -> Option<T> {
-        if let Some(new) = new { Some(new) } else { old }
-    }
-    fn merge_bool<T>(old: bool, new: bool) -> bool {
-        if let Some(new) = new { Some(new) } else { old }
-    }
-    fn recursive(mut self, flag: Option<Value>) -> Self {
-        if let Some(v) = flag {
-            if let Ok(i) = v.as_int() {
-                if i > 0 {
-                    self.recursive = i;
-                }
-            }
+    pub fn recursive(&self) -> i64 {
+        match self.recursive {
+            Some(i) => i,
+            None => 0, // unreachable
         }
-        self
     }
-    fn max_height(mut self, flag: Option<Value>) -> Self {
-        if let Some(v) = flag {
-            if let Ok(i) = v.as_int() {
-                if i > 0 {
-                    self.max_height = i;
-                }
-            }
-        }
-        self
-    }
+    // fn recursive(mut self, flag: Option<Value>) -> Self {
+    //     if let Some(v) = flag {
+    //         if let Ok(i) = v.as_int() {
+    //             if i > 0 {
+    //                 self.recursive = i;
+    //             }
+    //         }
+    //     }
+    //     self
+    // }
+    // fn max_height(mut self, flag: Option<Value>) -> Self {
+    //     if let Some(v) = flag {
+    //         if let Ok(i) = v.as_int() {
+    //             if i > 0 {
+    //                 self.max_height = i;
+    //             }
+    //         }
+    //     }
+    //     self
+    // }
 }
 pub enum SCmd {}
